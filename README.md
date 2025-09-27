@@ -16,11 +16,11 @@ So we also discuss some aspects of standard Ruby syntax and semantics.
 
 - [Array literals: full version](#array-literals-full-version)
   - [Desugaring constructing array splat](#desugaring-constructing-array-splat)
+  - [\[\] is also a sugar](#-is-also-a-sugar)
   - [Rubysyn: `(array)`](#rubysyn-array)
   - [Rubysyn: `(array-splat)`](#rubysyn-array-splat)
 
 <!-- markdown-toc end -->
-
 
 
 ## Array literals: full version
@@ -140,6 +140,21 @@ the standard documentation very recently:
 ["Unpacking Positional Arguments"](https://docs.ruby-lang.org/en/master/syntax/calling_methods_rdoc.html#label-Unpacking+Positional+Arguments).
 Also, there does not seem to exist a function with the same semantics
 as `array_splat`.
+
+## [] is also a sugar
+
+Note that `[]` is itself a sugar for `Array#[]` method:
+
+```ruby
+Array.[](2, 3, 4)
+# [2, 3, ]
+```
+
+So it's possible that constructing array splat actually stems from
+function argument processing.
+
+However, for now we consider array literal suffix an independent
+syntactical construct.
 
 ## Rubysyn: `(array)`
 
