@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-08-31]** This is an experiment in clarifying some aspects
+**[WIP, 2025-09-27]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -48,16 +48,7 @@ splat" syntax:
 The asterisk before the value replaces it with zero or more values,
 depending on what is in `foo`:
 
-* if `foo` is `nil`, `*foo` is removed entirely:
-
-```ruby
-foo = nil
-[1, 2, *foo, 3]
-
-# [1, 2, 3]
-```
-
-* if `foo` is an array, `*foo` is replaced with its elements:
+* if `foo` is an array, `*foo` is replaced by its elements:
 
 ```ruby
 foo = [10, 11]
@@ -67,16 +58,9 @@ foo = [10, 11]
 
 ```
 
-* if `foo` is a hash, `*foo` is replaced by a list of two-element
-arrays, one for each hash key:
-
-```ruby
-foo = { foo: :bar, quux: 23 }
-[1, 2, *foo, 3]
-
-# [1, 2, [ :foo, :bar ], [ :quux, 23 ], 3]
-
-```
+* if `foo` responds to `to_a` method, that method is called, and
+  `*foo` is replaced by the result array (see below for some
+  examples);
 
 * finally, for all other values `*foo` is replaced by the value of
 `foo`:
@@ -86,6 +70,28 @@ foo = "hello"
 [1, 2, *foo, 3]
 
 # [1, 2, "hello", 3]
+
+```
+
+#### Default implementations of `#to_a`.
+
+Particularly, `nil.to_a` returns an empty array:
+
+```ruby
+foo = nil
+[1, 2, *foo, 3]
+
+# [1, 2, 3]
+```
+
+If `foo` is a hash, `*foo` is replaced by a list of two-element
+arrays, one for each hash key:
+
+```ruby
+foo = { foo: :bar, quux: 23 }
+[1, 2, *foo, 3]
+
+# [1, 2, [ :foo, :bar ], [ :quux, 23 ], 3]
 
 ```
 
@@ -113,23 +119,27 @@ implement it as a simple Ruby function:
 
 ```ruby
 def array_splat(arr, chunk)
-  case chunk
-  when nil
-    return arr
-  when Array
+  case
+  when chunk.is_a?(Array)
     return arr.concat(chunk)
-  when Hash
-    return arr.concat(chunk.keys.map { [ _1, chunk[_1] ] })
+  when chunk.respond_to?(:to_a)
+    tmp = chunk.to_a
+    if tmp.is_a?(Array)
+      return arr.concat(tmp)
+    else
+      raise TypeError.new("can't convert #{chunk.class} to Array (#{chunk.class}#to_a gives #{tmp.class}) (TypeError)")
+    end
   else
     return arr.append(chunk)
   end
 end
 ```
 
-Note that the semantics of this function is not specified in the
-standard documentation also, I've gathered it from random sources.
-Particularly, I cannot even find a function that would be similar to
-`array_splat`.
+Note that the semantics of this function has only been specified in
+the standard documentation very recently:
+["Unpacking Positional Arguments"](https://docs.ruby-lang.org/en/master/syntax/calling_methods_rdoc.html#label-Unpacking+Positional+Arguments).
+Also, there does not seem to exist a function with the same semantics
+as `array_splat`.
 
 ## Rubysyn: `(array)`
 
