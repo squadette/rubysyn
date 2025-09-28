@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-09-27]** This is an experiment in clarifying some aspects
+**[WIP, 2025-09-28]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -19,6 +19,11 @@ So we also discuss some aspects of standard Ruby syntax and semantics.
   - [\[\] is also a sugar](#-is-also-a-sugar)
   - [Rubysyn: `(array)`](#rubysyn-array)
   - [Rubysyn: `(array-splat)`](#rubysyn-array-splat)
+- [Single-variable assignment](#single-variable-assignment)
+  - [Desugaring automatic array creation in assignment](#desugaring-automatic-array-creation-in-assignment)
+  - [Variable declaration vs assignment](#variable-declaration-vs-assignment)
+  - [Rubysyn: `(var)`](#rubysyn-var)
+  - [Rubysyn: `(assign)`](#rubysyn-assign)
 
 <!-- markdown-toc end -->
 
@@ -99,12 +104,12 @@ foo = { foo: :bar, quux: 23 }
 
 For some reason, this is not explained in standard Ruby documentation:
 
-* [Creating Arrays](https://docs.ruby-lang.org/en/3.4/Array.html#class-Array-label-Creating+Arrays);
+* ["Creating Arrays"](https://docs.ruby-lang.org/en/3.4/Array.html#class-Array-label-Creating+Arrays);
 
-* [Array Literals](https://docs.ruby-lang.org/en/3.4/syntax/literals_rdoc.html#label-Array+Literals);
+* ["Array Literals"](https://docs.ruby-lang.org/en/3.4/syntax/literals_rdoc.html#label-Array+Literals);
 
 This syntax is used in the
-[Implicit Array Assignment](https://docs.ruby-lang.org/en/3.4/syntax/assignment_rdoc.html#label-Implicit+Array+Assignment)
+["Implicit Array Assignment"](https://docs.ruby-lang.org/en/3.4/syntax/assignment_rdoc.html#label-Implicit+Array+Assignment)
 section, but in a very confusing way (more on that below).
 
 This syntax has nothing to do with assignment, it works everywhere
@@ -189,3 +194,104 @@ Here are some examples:
 | `[1, 2, *foo]` | `(array-splat (array 1 2) foo)` |
 |`[ 3, 4, *bar, 5, 6 ]` | `(array-splat (array-splat (array 3 4) bar) (array 5 6))` |
 
+
+## Single-variable assignment
+
+Single-variable assignment has a very simple base syntax:
+
+```ruby
+a = 3
+# 3
+
+```
+
+### Desugaring automatic array creation in assignment
+
+On the right side of the equals sign there is always a single
+expression, but there is an extra syntax sugar that automatically
+creates arrays from comma-separated expressions.
+
+```ruby
+a = 3, 4, 5
+# [3, 4, 5]
+
+```
+
+This is completely equivalent to the usual:
+
+```ruby
+a = [3, 4, 5]
+# [3, 4, 5]
+```
+
+Another way to trigger automatic creation of arrays is to use a constructing array splat syntax:
+
+```ruby
+a = *3
+# [3]
+
+```
+
+This is completely equivalent to:
+
+```ruby
+a = [3]
+# [3]
+```
+
+### Variable declaration vs assignment
+
+Variable assignment automatically declares variable in the current
+binding, if it was not already declared.
+
+Newly-declared variables have a value of `nil`.
+
+We'll clarify what "binding" means below.
+
+Note that the right-hand side of assignment is executed after the
+left-hand variable was declared and initialized to `nil`.  For example:
+
+```ruby
+a = a
+# nil
+
+b = b.class
+# NilClass
+
+```
+
+### Rubysyn: `(var)`
+
+Having considered all of this, we decouple variable declaration from variable assignment.
+
+```lisp
+(var <var>)
+
+```
+
+Declares listed variables in the current binding and initializes them to `nil`.
+
+`(var)` also returns `nil`.
+
+```lisp
+(var a)
+# nil
+
+```
+
+### Rubysyn: `(assign)`
+
+`(assign var value)` assigns a single value to a single variable.  Variable must
+be declared by `(var)`, otherwise a runtime exception is raised.
+
+
+`(assign)` returns a `value` as the result.
+
+Example:
+
+```lisp
+(var a)
+(assign a 3)
+# 3
+
+```
