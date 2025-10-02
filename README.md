@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-09-28]** This is an experiment in clarifying some aspects
+**[WIP, 2025-10-02]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -293,5 +293,143 @@ Example:
 (var a)
 (assign a 3)
 # 3
+
+```
+
+## Multi-variable assignment
+
+Multi-variable assignment seems to be a completely different construct
+compared to single-variable assignment.
+
+```ruby
+a, b, c = 1, 2, 3
+# [1, 2, 3]
+
+[a, b, c]
+# [1, 2, 3]
+```
+
+On the left side of assignment operator (`=`) there is a list of two
+or more variable names.  Note that variables do not need to be unique:
+
+```ruby
+a, a, a = 1, 2, 3
+# [1, 2, 3]
+
+a
+# 3
+```
+
+On the right side of assignment operator there is always an array of
+values.  The size of that array can be arbitrary and may not match the
+number of variables.
+
+### Desugaring automatic array creation in multi-assignment
+
+On the right side of the equals sign there is always a single array
+value.  There is also an extra syntax sugar that automatically creates
+arrays from comma-separated values.  Additionally, a single non-array
+value is converted to a one-element array.
+
+```ruby
+a, b, c = 3, 4, 5
+# [3, 4, 5]
+
+[a, b, c]
+# [3, 4, 5]
+```
+
+This is completely equivalent to:
+
+```ruby
+a, b, c = [3, 4, 5]
+# [3, 4, 5]
+
+[a, b, c]
+# [3, 4, 5]
+```
+
+Single non-array value is almost equivalent to a one-element array,
+only the return value of the operator itself is different:
+
+```ruby
+a, b, c = 1
+# 1
+
+[a, b, c] = [1, nil, nil]
+
+a, b, c = [1]
+# [1]
+
+[a, b, c] = [1, nil, nil]
+
+```
+
+Constructor array splat syntax works the same way as in single-variable assignment.
+
+```ruby
+foo = [2, 3]
+a, b, c = 1, *foo
+# [1, 2, 3]
+
+[a, b, c]
+# [1, 2, 3]
+
+```
+
+### Mismatch between the number of variables and the number of values
+
+If there are fewer variables than values, unused values are ignored.
+
+```ruby
+a, b = [1, 2, 3]
+# [1, 2, 3]
+
+[a, b]
+# [1, 2]
+```
+
+If there are more variables than values, extra variables are set to `nil`.
+
+```ruby
+a, b, c = [1, 2]
+# [1, 2]
+
+[a, b, c]
+# [1, 2, nil]
+
+```
+
+### Variable declaration in multi-assignment
+
+Assignment operator works in several steps. First, all variables are
+added to the current binding, unless they are already declared.
+
+Second, the right-hand array values are evaluated, using the current binding.
+
+Third, the variables are bound to evaluated values.  (This part is
+intentionally vague, to be clarified later.)
+
+This allows us to swap to variables without using the third, for example:
+
+```ruby
+a = 1
+b = 2
+
+a, b = b, a
+
+[a, b]
+# [2, 1]
+
+```
+
+Also, just-declared variables could be used on the right-hand side:
+
+```ruby
+a, b = b, 1
+# [nil, 1]
+
+[a, b]
+# [nil, 1]
 
 ```
