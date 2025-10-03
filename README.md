@@ -84,7 +84,7 @@ foo = "hello"
 
 ```
 
-#### Default implementations of `#to_a`.
+### Default implementations of `#to_a`.
 
 Particularly, `nil.to_a` returns an empty array:
 
@@ -123,7 +123,7 @@ where you use array literals.  NB: Do not confuse it with
 "destructuring array splat" syntax which is very much different, see
 below.
 
-## Desugaring constructing array splat
+### Desugaring constructing array splat
 
 Constructing array splat is pure syntactic sugar.  You can easily
 implement it as a simple Ruby function:
@@ -152,7 +152,7 @@ the standard documentation very recently:
 Also, there does not seem to exist a function with the same semantics
 as `array_splat`.
 
-## [] is also a sugar
+### [] is also a sugar
 
 Note that `[]` is itself a sugar for `Array#[]` method:
 
@@ -167,7 +167,7 @@ function argument processing.
 However, for now we consider array literal suffix an independent
 syntactical construct.
 
-## Rubysyn: `(array)`
+### Rubysyn: `(array)`
 
 Having considered all that, we realize that we need to handle only the
 most trivial case, everything else is a syntax sugar.
@@ -184,7 +184,7 @@ Here are some examples:
 | `[]` | `(array)` |
 |`[ 1, 2, 3 ]` | `(array 1 2 3)` |
 
-## Rubysyn: `(array-splat)`
+### Rubysyn: `(array-splat)`
 
 We also define the `array-splat` function with the same semantics as
 `def array_splat` defined above.
