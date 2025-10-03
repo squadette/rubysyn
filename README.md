@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-10-02]** This is an experiment in clarifying some aspects
+**[WIP, 2025-10-03]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -24,6 +24,12 @@ So we also discuss some aspects of standard Ruby syntax and semantics.
   - [Variable declaration vs assignment](#variable-declaration-vs-assignment)
   - [Rubysyn: `(var)`](#rubysyn-var)
   - [Rubysyn: `(assign)`](#rubysyn-assign)
+- [Multi-variable assignment](#multi-variable-assignment)
+  - [Desugaring automatic array creation in multi-assignment](#desugaring-automatic-array-creation-in-multi-assignment)
+  - [Splat variable](#splat-variable)
+  - [Bare splat variable](#bare-splat-variable)
+  - [Rubysyn: `(assign-multi)`](#rubysyn-assign-multi)
+
 
 <!-- markdown-toc end -->
 
@@ -433,3 +439,110 @@ a, b = b, 1
 # [nil, 1]
 
 ```
+
+### Splat variable
+
+One, and only one variable on the left hand side could be marked with
+a special "`*`" (asterisk) syntax.  This variable will get assigned an
+array value that contains all values left after other variables are
+assigned.
+
+```ruby
+a, b, *c, d = 1, 2, 3, 4, 5, 6, 7
+# [1, 2, 3, 4, 5, 6, 7]
+
+[a, b, c, d]
+# [1, 2, [3, 4, 5, 6], 7]
+
+```
+
+See that `a` got assigned the first value, `b` got assigned the second
+value, and `d` got assigned the last value.  Remaining values were put
+into the array and assigned to splat variable `c` (`[3, 4, 5, 6]`).
+
+Normal variables get assigned first, splat variable is assigned last.
+
+If there is not enough values, splat variables will get assigned an empty array.
+
+
+```ruby
+a, *b, c = 1, 2
+# [1, 2]
+
+[a, b, c]
+# [1, [], 2]
+
+```
+
+If there is not enough values even for normal variables, they will get
+assigned `nil`, as usual.
+
+There could be no values at all:
+
+```ruby
+a, *b, c = []
+# []
+
+[a, b, c]
+# [nil, [], nil]
+```
+
+### Bare splat variable
+
+There is a special syntactic case that at the moment may be too
+tediuos to incorporate into general rules of multi-assignment.
+
+One splat variable without any other variables is also a variant of
+multi-assignment.
+
+```ruby
+*a = 1, 2, 3
+# [1, 2, 3]
+
+a
+# [1, 2, 3]
+
+```
+
+It is a multi-assignment because the splat variable still receives an
+array, even when there is only one value on the right hand side:
+
+```ruby
+*a = 1
+# 1
+
+a
+# [1]
+
+```
+
+### Rubysyn: `(assign-multi)`
+
+In Rubysyn, multi-assignment looks like this:
+
+```lisp
+(assign-multi var1... expr)
+
+```
+
+Splat variable is marked by `(splat-var var)`;
+
+```lisp
+(assign-multi a (splat-var b) c (array 1 2 3))
+
+```
+
+It seems that `(assign-multi)` is not a proper Lisp function, but a syntactic
+macro that generates the code that:
+
+* declares and initializes variables to be assigned;
+
+* uses temporary variables to evaluate and store right hand side values;
+
+* assigns temporary variables;
+
+* returns the *expr* as a result;
+
+Later we'll see that the "assigns temporary variables" step can look
+differently depending on the type of assignment.
+
