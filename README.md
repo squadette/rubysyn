@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-10-03]** This is an experiment in clarifying some aspects
+**[WIP, 2025-10-07]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -29,6 +29,11 @@ So we also discuss some aspects of standard Ruby syntax and semantics.
   - [Splat variable](#splat-variable)
   - [Bare splat variable](#bare-splat-variable)
   - [Rubysyn: `(assign-multi)`](#rubysyn-assign-multi)
+- [Logical operators](#logical-operators)
+  - [Rubysyn: `(not)`](#rubysyn-not)
+- [Control flow](#control-flow)
+  - [Rubysyn: `(seq)`](#rubysyn-seq)
+  - [Rubysyn: `(binding)`](#rubysyn-binding)
 
 
 <!-- markdown-toc end -->
@@ -546,3 +551,47 @@ macro that generates the code that:
 Later we'll see that the "assigns temporary variables" step can look
 differently depending on the type of assignment.
 
+## Logical operators
+
+### Rubysyn: `(not)`
+
+`(not <expr>)` implements logical operator NOT.  It evaluates
+`<expr>`, and returns `true` if the value is `false` or `nil`, and
+`false` otherwise.
+
+This corresponds to Ruby operator `not`.
+
+Note that Ruby operator `!` is different, see "Method-based operators".
+
+Fun fact: `not` is not described in the standard Ruby documentation:
+["Logical Operators"](https://docs.ruby-lang.org/en/3.4/syntax/operators_rdoc.html#label-Logical+Operators).
+
+## Control flow
+
+### Rubysyn: `(seq)`
+
+`(seq <expr>...)` implements simple execution sequence.  Provided
+expressions are evaluated one by one.  If the control flow reached the
+end of `(seq)`, the value of last element is returned as the result.
+
+Note that `(seq)` does not create a new binding, the existing binding
+is used.
+
+`(seq)` corresponds to the almost invisible syntax in Ruby: new lines
+and semicolons
+(see ["Ending an Expression"](https://docs.ruby-lang.org/en/3.4/syntax/miscellaneous_rdoc.html#label-Ending+an+Expression)).
+
+### Rubysyn: `(binding)`
+
+`(binding <expr>)` evaluates a single expression in the new binding,
+and returns its value.
+
+Note that the binding may or may not "disappear" when `(binding)` is
+exited.  For example, if `<expr>` would create a new continuation via
+`(callcc)`, the binding will remain, and it's possible to return
+"inside it" from a different bind that is syntactically unrelated.
+More on that below.
+
+`(binding)` has no direct correspondence to any Ruby syntax.
+
+Note that some other control flow operators also create a new binding.
