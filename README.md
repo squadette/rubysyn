@@ -34,6 +34,7 @@ So we also discuss some aspects of standard Ruby syntax and semantics.
 - [Control flow](#control-flow)
   - [Rubysyn: `(seq)`](#rubysyn-seq)
   - [Rubysyn: `(if)`](#rubysyn-if)
+    - [Ternary operator](#ternary-operator)
 
 
 <!-- markdown-toc end -->
@@ -639,4 +640,10 @@ like this:
 a
 ;; => nil
 ````
+
+This "declaration gathering" is explained in more detail below.
+
+#### Ternary operator
+
+Ruby ternary operator `a ? b : c` is implemented as `(if a b c)`.
 
