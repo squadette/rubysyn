@@ -34,7 +34,7 @@ So we also discuss some aspects of standard Ruby syntax and semantics.
 - [Control flow](#control-flow)
   - [Rubysyn: `(seq)`](#rubysyn-seq)
   - [Rubysyn: `(if)`](#rubysyn-if)
-    - [Ternary operator](#ternary-operator)
+    - [Desugaring `if` variants](#desugaring-if-variants)
 
 
 <!-- markdown-toc end -->
@@ -643,7 +643,10 @@ a
 
 This "declaration gathering" is explained in more detail below.
 
-#### Ternary operator
+#### Desugaring `if` variants
 
 Ruby ternary operator `a ? b : c` is implemented as `(if a b c)`.
 
+`elsif` is equvalent to `else if`.
+
+`unless` is equivalent to `if not`.
