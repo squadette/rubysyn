@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-10-07]** This is an experiment in clarifying some aspects
+**[WIP, 2025-10-25]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -33,7 +33,7 @@ So we also discuss some aspects of standard Ruby syntax and semantics.
   - [Rubysyn: `(not)`](#rubysyn-not)
 - [Control flow](#control-flow)
   - [Rubysyn: `(seq)`](#rubysyn-seq)
-  - [Rubysyn: `(binding)`](#rubysyn-binding)
+  - [Rubysyn: `(if)`](#rubysyn-if)
 
 
 <!-- markdown-toc end -->
@@ -574,24 +574,69 @@ Fun fact: `not` is not described in the standard Ruby documentation:
 expressions are evaluated one by one.  If the control flow reached the
 end of `(seq)`, the value of last element is returned as the result.
 
-Note that `(seq)` does not create a new binding, the existing binding
-is used.
-
 `(seq)` corresponds to the almost invisible syntax in Ruby: new lines
 and semicolons
 (see ["Ending an Expression"](https://docs.ruby-lang.org/en/3.4/syntax/miscellaneous_rdoc.html#label-Ending+an+Expression)).
 
-### Rubysyn: `(binding)`
+Empty `(seq)` is a no-op.  It returns `nil` as the result.
 
-`(binding <expr>)` evaluates a single expression in the new binding,
-and returns its value.
+### Rubysyn: `(if)`
 
-Note that the binding may or may not "disappear" when `(binding)` is
-exited.  For example, if `<expr>` would create a new continuation via
-`(callcc)`, the binding will remain, and it's possible to return
-"inside it" from a different bind that is syntactically unrelated.
-More on that below.
+`(if <expr> <true-branch> [<false-branch>])` implements `if` operator as defined in Ruby.
 
-`(binding)` has no direct correspondence to any Ruby syntax.
+First, an `<expr>` is evaluated.  If its value is true,
+`<true-branch>` is executed and its value is returned as the result.
+If the `<false-branch>` exists, all the `(var)` variable declarations
+are gathered from its body, and executed.
 
-Note that some other control flow operators also create a new binding.
+Otherwise, if the value is false and `<false-branch>` exists, it is
+executed and its value is returned as the result.  Before returning,
+all the `(var)` variable declarations are gathered from
+`<true-branch>` body, and executed.
+
+All of this is needed because in variable declarations in Ruby are
+valid even if they are in the branch that was never taken.  E.g.:
+
+````ruby
+
+if true
+  # do nothing
+else
+  a = 2
+end
+
+a
+# => nil
+
+````
+
+Here the `a` variable is declared even though the "else" branch of
+this `if` was never taken.  This syntax is recursive: you can define
+more `if`'s and other constructs in a never-taken branch, and all of
+those variables would be declared after the end of the top-level `if`.
+
+In Rubysyn this code corresponds to:
+
+```lisp
+
+(if true (seq)
+    (seq (var a) (assign a 2)))
+
+a
+;; => nil
+````
+
+In this example, we can analyze the "else" branch and see that it
+contains a declaration of `a` variable.  This analysis is completely
+static and works on a syntax level.  The original code is rewritten
+like this:
+
+```lisp
+
+(if true (seq (var a))  ;; <--- (var a) inserted here
+    (seq (var a) (assign a 2)))
+
+a
+;; => nil
+````
+
