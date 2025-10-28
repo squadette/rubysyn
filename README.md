@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-10-25]** This is an experiment in clarifying some aspects
+**[WIP, 2025-10-28]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -35,6 +35,8 @@ So we also discuss some aspects of standard Ruby syntax and semantics.
   - [Rubysyn: `(seq)`](#rubysyn-seq)
   - [Rubysyn: `(if)`](#rubysyn-if)
     - [Desugaring `if` variants](#desugaring-if-variants)
+- [Rubysyn: literals](#rubysyn-literals)
+  - [String literals](#string-literals)
 
 
 <!-- markdown-toc end -->
@@ -650,3 +652,39 @@ Ruby ternary operator `a ? b : c` is implemented as `(if a b c)`.
 `elsif` is equvalent to `else if`.
 
 `unless` is equivalent to `if not`.
+
+## Rubysyn: Literals
+
+### String literals
+
+String literals in Rubysyn are double-quoted.  Only a small number of
+escape sequences is supported: `\"`, `\\`, `\n`, `\r`, `\t`,
+`\u{nnnnn}`, and `\xnn`.  Other symbols after backslash are not
+allowed.
+
+All other Ruby syntax for string construction, including
+here-documents etc. is a syntactic sugar and is not supported.
+
+Example:
+
+````lisp
+(var foo)
+(assign foo "Hello, world!")
+
+````
+
+String interpolation is implemented as a helper function:
+
+````lisp
+(string-interpolate "<template>" <value>...)
+
+````
+
+`<template>` is a string literal with two active components: `%s` and
+`%%`.  All other symbols after percent sign are not allowed.
+
+For each value a `#to_s` method is called, and the resulting value is
+inserted into a template.
+
+String literals correspond to instances of class `String`.  We discuss
+memory allocation of such instances elsewhere.
