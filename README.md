@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-10-28]** This is an experiment in clarifying some aspects
+**[WIP, 2025-11-15]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -35,6 +35,7 @@ So we also discuss some aspects of standard Ruby syntax and semantics.
   - [Rubysyn: `(seq)`](#rubysyn-seq)
   - [Rubysyn: `(if)`](#rubysyn-if)
     - [Desugaring `if` variants](#desugaring-if-variants)
+  - [Rubysyn: `(while)`](#rubysyn-while)
 - [Rubysyn: literals](#rubysyn-literals)
   - [String literals](#string-literals)
 
@@ -652,6 +653,38 @@ Ruby ternary operator `a ? b : c` is implemented as `(if a b c)`.
 `elsif` is equvalent to `else if`.
 
 `unless` is equivalent to `if not`.
+
+### Rubysyn: `(while)`
+
+`(while cond body)` implements the `while` operator as defined in Ruby.
+
+First, a `<cond>` is evaluated.  If its value is true, `<body>` is
+executed. After that `<cond>` is evaluated again, and the cycle
+repeats.
+
+Additionally, all the `(var)` variable declarations are gathered from
+body, and executed.
+
+All of this is needed because variable declarations in Ruby are
+valid even if the loop body was never executed.  E.g.:
+
+```ruby
+
+while false
+  a = 2
+end
+
+a
+# => nil
+
+```
+
+"Declaration gathering" is explained in more detail below.
+
+Normally, `(while)` returns `nil`.  `(break)` operator, described
+below, can override this.
+
+
 
 ## Rubysyn: Literals
 
