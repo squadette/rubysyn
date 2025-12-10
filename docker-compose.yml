@@ -1,0 +1,13 @@
+volumes:
+  rubysyn-rvm:
+
+services:
+  shell:
+    build: .
+    command: "/var/rubysyn/src/ruby.sh"
+    volumes:
+      - type: bind
+        source: .
+        target: /var/rubysyn/src
+        consistency: cached
+      - rubysyn-rvm:/var/rubysyn/rvm
