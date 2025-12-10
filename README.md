@@ -662,8 +662,8 @@ First, a `<cond>` is evaluated.  If its value is true, `<body>` is
 executed. After that `<cond>` is evaluated again, and the cycle
 repeats.
 
-Additionally, all the `(var)` variable declarations are gathered from
-body, and executed.
+After the loop was completed, all the `(var)` variable declarations
+are gathered from body, and executed.
 
 All of this is needed because variable declarations in Ruby are
 valid even if the loop body was never executed.  E.g.:
