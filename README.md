@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-11-15]** This is an experiment in clarifying some aspects
+**[WIP, 2025-12-11]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -10,6 +10,9 @@ sugar-free syntax.
 As I started working on this, I had to find a better explanation for
 some aspects of Ruby than what is available in standard documentation.
 So we also discuss some aspects of standard Ruby syntax and semantics.
+
+See the `spec/` directory for some corner cases of Ruby syntax and
+semantics that we are interested here.
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
