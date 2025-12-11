@@ -35,6 +35,55 @@ describe ".each" do
     expect(t).to eq(20)
   end
 
+  def only_once_block_call(x, y, &block)
+    block.call(x)
+
+    raise "this never happens?"
+
+    return y
+  end
+
+  it "block.call is yield" do
+    t = only_once_block_call(3, 30) do |x|
+      break 20
+    end
+    expect(t).to eq(20)
+  end
+
+  def only_once_ensure(x, y, &block)
+    begin
+      yield x
+    ensure
+
+    end
+
+    return y
+  end
+
+  it "ensure wraps break, but the entire function still returns" do
+    t = only_once_ensure(3, 30) do |x|
+      break 20
+    end
+    expect(t).to eq(20)
+  end
+
+  def only_once_ensure_return(x, y, &block)
+    begin
+      yield x
+    ensure
+      return 23
+    end
+
+    return y
+  end
+
+  it "break can be caught by ensure, and then return" do
+    t = only_once_ensure_return(3, 30) do |x|
+      break 20
+    end
+    expect(t).to eq(23)
+  end
+
   it "next in block is like return from block" do
     t = only_once(3) do |x|
       next 15
