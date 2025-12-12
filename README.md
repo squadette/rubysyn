@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-12-11]** This is an experiment in clarifying some aspects
+**[WIP, 2025-12-12]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -34,11 +34,15 @@ semantics that we are interested here.
   - [Rubysyn: `(assign-multi)`](#rubysyn-assign-multi)
 - [Logical operators](#logical-operators)
   - [Rubysyn: `(not)`](#rubysyn-not)
+- [Semantic primitives](#semantic-primitives)
+  - [Synvars](#synvars)
+  - [Tailcalls and labels](#tailcalls-and-labels)
 - [Control flow](#control-flow)
   - [Rubysyn: `(seq)`](#rubysyn-seq)
   - [Rubysyn: `(if)`](#rubysyn-if)
     - [Desugaring `if` variants](#desugaring-if-variants)
   - [Rubysyn: `(while)`](#rubysyn-while)
+  - [Rubysyn: `(break)`, `(next)`, and `(redo)`](#rubysyn-break-next-and-redo)
 - [Rubysyn: literals](#rubysyn-literals)
   - [String literals](#string-literals)
 
@@ -573,6 +577,80 @@ Note that Ruby operator `!` is different, see "Method-based operators".
 Fun fact: `not` is not described in the standard Ruby documentation:
 ["Logical Operators"](https://docs.ruby-lang.org/en/3.4/syntax/operators_rdoc.html#label-Logical+Operators).
 
+## Semantic primitives
+
+Some constructs in Rubysyn do not correspond to anything in Ruby
+syntax.  Those constructs help define the execution semantics.  We
+define most of them with a lot of handwaving at the moment.
+
+### Synvars
+
+Synvars are "syntactic variables".  Synvars can store values of all
+types: both internal and Ruby values.  Synvar names look like
+`$$foo-bar-baz`.  They are not visible to Ruby itself, but their
+values can be.
+
+Some synvars are global and defined by the Rubysyn language.  Some
+synvars are syntactic, and could be used freely to illustrate the
+implementation of normal Rubysyn constructs.
+
+Synvars could be assigned using `(assign)`.  Here are some examples
+without explanation:
+
+```lisp
+(assign $$current-binding $$previous-binding)
+
+(assign $$return-value foo)
+
+(assign $$next-label $$return-label)
+
+```
+
+### Tailcalls and labels
+
+Rubysyn allows to define labels.  Label is basically a pointer to the
+following s-expression.  You can transfer control to the label: this
+is called goto^W "tailcall".
+
+Labels can have one associated variable, and the tailcall can pass the
+value to the label.  This value is assigned to the associated variable
+before the control transfer happens.  Associated variables can be
+synvars or local variables.
+
+Labels are declared by `(label synvar var)` operator.  Each label has
+a corresponding synvar that is basically a pointer to the following
+s-expression.
+
+Tailscalls are executed by `(tailcall synvar value)`.
+
+Here is an example:
+
+```lisp
+
+(seq (var counter)               ; # 1
+    (assign counter 0)           ; # 2
+
+    (label $$local-top counter)  ; # 3
+
+    (if (< counter 5)            ; # 4
+        (tailcall $$label-top (+ counter 1))) ; # 5
+    counter)
+
+```
+
+In line 1, a local variable `counter` is declared.  In line 2, it is
+set to 0. In line 3, a tailcall label is defined; it points to the (if) in line 5.
+
+In lines 4-5, if the `counter` is less then 5, tailcall to the
+`$$local-top` label, assigning the value of `(+ counter 1)` to
+`counter`.
+
+In this example we know that tailcall assigns value to a known
+variable.  Technically, we don't need tailcall assignment here.  But
+it's important that it's the label that decides which variable gets
+assigned.
+
+
 ## Control flow
 
 ### Rubysyn: `(seq)`
@@ -687,6 +765,53 @@ a
 Normally, `(while)` returns `nil`.  `(break)` operator, described
 below, can override this.
 
+#### Desugaring loop variants
+
+`until cond` is a syntactic sugar for `while not cond`.
+
+### Rubysyn: `(break)`, `(next)`, and `(redo)`
+
+In Ruby, `break`, `next` and `redo` are closely associated with all
+kinds of loops: `while`, `until`, `for`, and `.each`.
+
+Their execution semantics, however, could be defined in a very
+primitive way using Rubysyn primitives.
+
+* `(break val)` is implemented as `(tailcall $$current-break-label val)`;
+
+* `(next val)` is implemented as `(tailcall $$current-next-label val)`;
+
+* `(redo val)` is implemented as `(tailcall $$current-redo-label val)`;
+
+That's it.  Three synvars used here are global.  Containing constructs
+such as `(while)` set the values of those labels correspondingly.
+
+`(while cond body)` could be expanded roughly in the following way:
+
+
+```lisp
+(seq (synvar $$return-value)
+    (assign $$current-break-label $$bottom-label)
+    (assign $$current-next-label $$top-label)
+    (assign $$current-redo-label $$top-label)
+    (label $$top-label)
+    (if cond (seq body (tailcall $$top-label)))
+    (label $$bottom-label $$return-value)
+    $$return-value)
+```
+
+This (probably incomplete) implementation of `(while)` sets the three
+global synvars to the appropriate labels.  As a result:
+
+* `(break)` transfers control to the end of `(while)`, setting its
+return value (defined by `$$bottom-label`);
+
+* `(redo)` and `(next)` are equivalent inside `(while)`: they both
+  transfer control back to the top of the loop.
+
+Later we'll discuss how `$$current-break-label` et al are assigned for
+`yield`, and for the top level.  This will explain the behaviour of
+`.each` and top-level syntax exception in Ruby.
 
 
 ## Rubysyn: Literals
