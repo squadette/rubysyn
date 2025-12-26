@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-12-12]** This is an experiment in clarifying some aspects
+**[WIP, 2025-12-26]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -43,6 +43,8 @@ semantics that we are interested here.
     - [Desugaring `if` variants](#desugaring-if-variants)
   - [Rubysyn: `(while)`](#rubysyn-while)
   - [Rubysyn: `(break)`, `(next)`, and `(redo)`](#rubysyn-break-next-and-redo)
+- [Blocks and lambdas](#blocks-and-lambdas)
+  - [Rubysyn: `(lambda)`](#rubysyn-lambda)
 - [Rubysyn: literals](#rubysyn-literals)
   - [String literals](#string-literals)
 
@@ -812,6 +814,102 @@ return value (defined by `$$bottom-label`);
 Later we'll discuss how `$$current-break-label` et al are assigned for
 `yield`, and for the top level.  This will explain the behaviour of
 `.each` and top-level syntax exception in Ruby.
+
+
+## Blocks and lambdas
+
+Ruby has blocks and lambdas.  The difference between them is well known.
+
+With lambdas:
+
+* `return` and `break` exit from lambda;
+
+* strict handling of arguments; full range of Ruby arguments is
+  supported: normal arguments and keyword arguments, default values
+  and splat arguments;
+
+
+With blocks:
+
+* `return` exits from embracing method; throws exception if it was
+  called outside of any method;
+
+* `break` exists from the entire method; throws exception if the
+  method has already returned (that is, you've stored a Proc instance
+  somewhere and called it);
+
+* lax handling of arguments: missing arguments are filled with `nil`,
+  single argument of `Array` type is deconstructed if the block has
+  more than one argument, extra arguments are ignored;
+
+* special `_1`, `_2`, etc. arguments are available, as well as special
+  `it` variable;
+
+In Ruby, blocks and lambdas can be stored in variables as instances of
+`Proc` type.
+
+In Rubysyn, blocks and lambdas can be stored directly in synvars.
+Also, an instance of `Proc` could be created that contains block or
+lambda, and it could be stored in Ruby variables (or synvars).
+
+Methods are implemented as lambdas, but there is additional name
+resolution machinery that we'll talk about in a separate section.
+
+### Rubysyn: `(lambda)`
+
+Lambdas are defined with the following syntax:
+
+```lisp
+
+(lambda (args arg1...) (kwargs kwarg1...) body)
+
+```
+
+Inside the `(args ...)` clause you can use the following:
+
+* required arguments: `a`;
+
+* optional argument with default value: `(optional b <default>)`; if
+  default value is omitted, `nil` is used;
+
+* rest argument: `(splat z)`, assembles everything into an array
+  value; omit the argument name to ignore keyword arguments;
+
+Same inside the `(kwargs ...)` clause, but the rest argument assembles
+everything into a Hash.
+
+`(args ...)` and `(kwargs ...)` clauses are optional.  They can also be empty.
+
+All `(optional)` arguments must be at the end. If `(splat)` is
+provided, it must be the very last in its clause.
+
+Here are examples of all possible combinations:
+
+```lisp
+
+;; ->(a, b = 20, *c) { [a, b, c] }
+(lambda (args a (optional b 20) (splat c))
+    (array a b c))
+
+;; ->(d, e = 42, **f) { [d, e, f] }
+(lambda (kwargs d (optional e 42) (splat f))
+    (array d e f))
+
+;; no arguments
+;; ->() { "foo" }
+(lambda "foo")
+
+;; ignore keyword arguments
+;; ->(**) { [] }
+(lambda (kwargs (splat))
+    (array))
+
+;; accept keywords but do not accept any keywords
+;; ->(**nil) { [] }
+(lambda (kwargs)
+    (array))
+
+```
 
 
 ## Rubysyn: Literals
