@@ -818,32 +818,33 @@ Later we'll discuss how `$$current-break-label` et al are assigned for
 
 ## Blocks and lambdas
 
-Ruby has blocks and lambdas.  The difference between them is well known.
+**NB: this chapter is incomplete and partly inaccurate.
+
+Ruby has blocks and lambdas.
 
 With lambdas:
 
 * `return` and `break` exit from lambda;
 
-* strict handling of arguments; full range of Ruby arguments is
-  supported: normal arguments and keyword arguments, default values
-  and splat arguments;
+* `redo` goes back to the beginning of lambda;
 
+* strict handling of arguments;
 
 With blocks:
 
-* `return` exits from embracing method; throws exception if it was
-  called outside of any method;
-
-* `break` exists from the entire method; throws exception if the
-  method has already returned (that is, you've stored a Proc instance
-  somewhere and called it);
+* `return` and `break` exits from the lambda where this block was
+  defined (syntactically); throws `LocalJumpError` if it was called
+  outside of any lambda (to achieve this, store a Proc instance
+  somewhere and calle it);
 
 * lax handling of arguments: missing arguments are filled with `nil`,
   single argument of `Array` type is deconstructed if the block has
   more than one argument, extra arguments are ignored;
 
-* special `_1`, `_2`, etc. arguments are available, as well as special
-  `it` variable;
+In both blocks and lambdas, full range of Ruby arguments is supported:
+normal arguments and keyword arguments, default values and splat
+arguments.  Also, implicit arguments (`it`, `_1`, `_2`, etc.) are
+supported.
 
 In Ruby, blocks and lambdas can be stored in variables as instances of
 `Proc` type.
@@ -862,6 +863,13 @@ Lambdas are defined with the following syntax:
 ```lisp
 
 (lambda (args arg1...) (kwargs kwarg1...) body)
+
+```
+
+and
+
+```lisp
+(lambda (implicit-args) body)
 
 ```
 
