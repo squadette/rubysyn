@@ -126,4 +126,15 @@ describe "lambda" do
     expect { l.call(*args) }.to raise_error ArgumentError
   end
 
+  it "splat call" do
+
+    l = ->(x, y, z) do
+      return "#{x} #{y} #{z}"
+    end
+
+    args = [20, 30]
+    expect(l.call(10, *args)).to eq("10 20 30")
+  end
+
+
 end
