@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2025-12-26]** This is an experiment in clarifying some aspects
+**[WIP, 2026-02-18]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -888,10 +888,23 @@ everything into a Hash.
 
 `(args ...)` and `(kwargs ...)` clauses are optional.  They can also be empty.
 
-All `(optional)` arguments must be at the end. If `(splat)` is
-provided, it must be the very last in its clause.
+Default argument values can refer to the values of previous arguments.
 
-Here are examples of all possible combinations:
+Inside the `(args ...)` clause, required and optional arguments, and
+the rest argument can be defined only in a certain order:
+
+* *required-args?*;
+
+* *optional-args?*;
+
+* *rest-arg?*
+
+* *required-args-2?*.
+
+Any component may not be present.  If both *optional-args* and
+*rest-arg* are not present, then *required-args-2* is empty.
+
+Here are some examples of possible combinations:
 
 ```lisp
 

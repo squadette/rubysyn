@@ -35,6 +35,14 @@ describe "lambda" do
     expect(l.call(10)).to eq("10 23")
   end
 
+  it "default arguments refer to previous" do
+    l = ->(x, mode = x * 2) do
+      return "#{x} #{mode}"
+    end
+
+    expect(l.call(10)).to eq("10 20")
+  end
+
   it "break in lambda" do
     l = ->(x, mode = 23) do
       break "#{x} #{mode}"
