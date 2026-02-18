@@ -45,6 +45,7 @@ semantics that we are interested here.
   - [Rubysyn: `(break)`, `(next)`, and `(redo)`](#rubysyn-break-next-and-redo)
 - [Blocks and lambdas](#blocks-and-lambdas)
   - [Rubysyn: `(lambda)`](#rubysyn-lambda)
+  - [Rubysyn: `(apply)`](#rubysyn-apply)
 - [Rubysyn: literals](#rubysyn-literals)
   - [String literals](#string-literals)
 
@@ -648,7 +649,7 @@ In lines 4-5, if the `counter` is less then 5, tailcall to the
 `counter`.
 
 In this example we know that tailcall assigns value to a known
-variable.  Technically, we don't need tailcall assignment here.  But
+variable.  Technically, we don't need a tailcall assignment here.  But
 it's important that it's the label that decides which variable gets
 assigned.
 
@@ -884,7 +885,7 @@ Inside the `(args ...)` clause you can use the following:
   value; omit the argument name to ignore keyword arguments;
 
 Same inside the `(kwargs ...)` clause, but the rest argument assembles
-everything into a Hash.
+everything into a Hash.  Rest argument must be the last in `(kwargs)` clause.
 
 `(args ...)` and `(kwargs ...)` clauses are optional.  They can also be empty.
 
@@ -930,6 +931,59 @@ Here are some examples of possible combinations:
 (lambda (kwargs)
     (array))
 
+```
+
+### Rubysyn: `(apply)`
+
+Given a lambda defined by `(lambda)`, or a block defined by `(block)`,
+we can call it, passing some arguments.
+
+In the following examples we assume that `$$lam` synvar contains a
+lambda, and `$$block` contains a block.
+
+Here are some examples of calling lambdas:
+
+* `(apply $$lam <arg>...)`: the most common way;
+
+* `(apply $$lam)`: no arguments;
+
+* `(apply $$lam <arg>... (kwargs ...))`: positional arguments and keyword arguments, see below;
+
+Positional arguments can contain splat arguments, specified by the `(splat <val>)` clause:
+
+```lisp
+
+(assign arr (array 30 40))
+(apply $$lam 20 (splat arr))
+
+;; roughly equivalent to:
+;; arr = [ 30, 40]
+;; foo(20, *arr)
+
+```
+
+Keyword arguments in `(kwargs)` clause are specified using Rubysyn
+hash syntax:
+
+```lisp
+
+(apply $$lam "hello" (kwargs (:foo . 2) (:bar . true)))
+
+;; roughly equivalent to:
+;; foo("hello", foo: 2, bar: true)
+
+```
+
+Splat keyword arguments are provided by a `(splat <val>)` clause:
+
+```lisp
+
+(assign args ((:foo . 2) (:bar . true)))
+(apply $$lam "hello" (kwargs (splat args)))
+
+;; roughly equivalent to:
+;; args = { foo: 2, bar: true }
+;; foo("hello", **args)
 ```
 
 

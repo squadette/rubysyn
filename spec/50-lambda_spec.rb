@@ -96,6 +96,14 @@ describe "lambda" do
     expect(l.call(1, 2, 3)).to eq("1 [2, 3]")
   end
 
+  it "splat keyword argument in lambda" do
+    l = ->(x, **y) do
+      return "#{x} #{y}"
+    end
+
+    expect(l.call(1, foo: 2, bar: 3)).to eq("1 {:foo=>2, :bar=>3}")
+  end
+
   it "no it in lambda" do
     l = Object.new.instance_eval do
       ->(x) do
