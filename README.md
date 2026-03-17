@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2026-02-18]** This is an experiment in clarifying some aspects
+**[WIP, 2026-03-17]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -45,9 +45,12 @@ semantics that we are interested here.
   - [Rubysyn: `(break)`, `(next)`, and `(redo)`](#rubysyn-break-next-and-redo)
 - [Blocks and lambdas](#blocks-and-lambdas)
   - [Rubysyn: `(lambda)`](#rubysyn-lambda)
-  - [Rubysyn: `(apply)`](#rubysyn-apply)
+  - [Rubysyn: `(call)`](#rubysyn-call)
+    - [Runtime behavior of `(call)`](#runtime-behavior-of-call)
 - [Rubysyn: literals](#rubysyn-literals)
   - [String literals](#string-literals)
+  - [Symbol literals](#symbol-literals)
+  - [Hash literals](#hash-literals)
 
 
 <!-- markdown-toc end -->
@@ -933,7 +936,7 @@ Here are some examples of possible combinations:
 
 ```
 
-### Rubysyn: `(apply)`
+### Rubysyn: `(call)`
 
 Given a lambda defined by `(lambda)`, or a block defined by `(block)`,
 we can call it, passing some arguments.
@@ -943,18 +946,18 @@ lambda, and `$$block` contains a block.
 
 Here are some examples of calling lambdas:
 
-* `(apply $$lam <arg>...)`: the most common way;
+* `(call $$lam <arg>...)`: the most common way;
 
-* `(apply $$lam)`: no arguments;
+* `(call $$lam)`: no arguments;
 
-* `(apply $$lam <arg>... (kwargs ...))`: positional arguments and keyword arguments, see below;
+* `(call $$lam <arg>... (kwargs ...))`: positional arguments and keyword arguments, see below;
 
 Positional arguments can contain splat arguments, specified by the `(splat <val>)` clause:
 
 ```lisp
 
 (assign arr (array 30 40))
-(apply $$lam 20 (splat arr))
+(call $$lam 20 (splat arr))
 
 ;; roughly equivalent to:
 ;; arr = [ 30, 40]
@@ -962,12 +965,12 @@ Positional arguments can contain splat arguments, specified by the `(splat <val>
 
 ```
 
-Keyword arguments in `(kwargs)` clause are specified using Rubysyn
-hash syntax:
+Keyword arguments in `(kwargs)` clause are specified similarly to
+Rubysyn hash syntax:
 
 ```lisp
 
-(apply $$lam "hello" (kwargs (:foo . 2) (:bar . true)))
+(call $$lam "hello" (kwargs (:foo . 2) (:bar . true)))
 
 ;; roughly equivalent to:
 ;; foo("hello", foo: 2, bar: true)
@@ -979,12 +982,34 @@ Splat keyword arguments are provided by a `(splat <val>)` clause:
 ```lisp
 
 (assign args ((:foo . 2) (:bar . true)))
-(apply $$lam "hello" (kwargs (splat args)))
+(call $$lam "hello" (kwargs (splat args)))
 
 ;; roughly equivalent to:
 ;; args = { foo: 2, bar: true }
 ;; foo("hello", **args)
 ```
+
+#### Runtime behavior of `(call)`
+
+The behavior of`(call)` is very dynamic.  This may be contrary to your
+expectations based on Lisp syntax.
+
+Arguments of `(call)` are evaluated one by one, and assigned to
+corresponding arguments of `$$lam`.
+
+Exact sequence would be described separately, for now it's enough to
+say that it matches current Ruby semantics.
+
+Here are known sources of dynamic behavior:
+
+* optional arguments can cause evaluation if there is no value provided;
+
+* rest-arguments cause array instantiation;
+
+* `(splat)` for both positional and keyword arguments cause runtime
+  behavior;
+
+* too many and too few arguments cause corresponding exceptions;
 
 
 ## Rubysyn: Literals
@@ -1022,3 +1047,49 @@ inserted into a template.
 
 String literals correspond to instances of class `String`.  We discuss
 memory allocation of such instances elsewhere.
+
+### Symbol literals
+
+Symbols use the same syntax as in Ruby: `:foo`.
+
+For interpolations a standard function is used:
+
+````lisp
+(string-to-symbol "foo")
+
+;; => :foo
+
+````
+
+### Hash literals
+
+Hash objects use traditional alist syntax:
+
+````lisp
+((<key> . <val>) (<key2> . <val2>) ...)
+
+;; empty hash
+()
+
+````
+
+corresponds to Ruby syntax
+
+````ruby
+{ key => val, key2 => val2, ... }
+
+\# empty hash
+{}
+````
+
+Modern-style syntax is just sugar:
+
+````ruby
+{ foo: bar, baz: 20 }
+````
+
+corresponds to
+
+````lisp
+((:foo . bar) (:baz . 20))
+````
