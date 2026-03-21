@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2026-03-17]** This is an experiment in clarifying some aspects
+**[WIP, 2026-03-22]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -47,6 +47,10 @@ semantics that we are interested here.
   - [Rubysyn: `(lambda)`](#rubysyn-lambda)
   - [Rubysyn: `(call)`](#rubysyn-call)
     - [Runtime behavior of `(call)`](#runtime-behavior-of-call)
+- [Classes, modules and methods](#classes-modules-and-methods)
+  - [Rubysyn: `(class)`](#rubysyn-class)
+  - [Rubysyn: `(singleton-class)`](#rubysyn-singleton-class)
+
 - [Rubysyn: literals](#rubysyn-literals)
   - [String literals](#string-literals)
   - [Symbol literals](#symbol-literals)
@@ -645,7 +649,8 @@ Here is an example:
 ```
 
 In line 1, a local variable `counter` is declared.  In line 2, it is
-set to 0. In line 3, a tailcall label is defined; it points to the (if) in line 5.
+set to 0. In line 3, a tailcall label is defined; it points to the
+`(if)` in line 4.
 
 In lines 4-5, if the `counter` is less then 5, tailcall to the
 `$$local-top` label, assigning the value of `(+ counter 1)` to
@@ -1011,8 +1016,93 @@ Here are known sources of dynamic behavior:
 
 * too many and too few arguments cause corresponding exceptions;
 
+## Classes, modules and methods
 
-## Rubysyn: Literals
+### Rubysyn: `(class)`
+
+Classes are defined or reopened using the following syntax:
+
+```lisp
+
+(class (<Name> . <superclass>) <body>...)
+
+(class <Name> <body>...)
+
+```
+
+`<Name>` is the name of the class, e.g. `Foo`, or `nil` for anonymous classes.
+
+`<superclass>` is the name of the superclass, possibly including `::`.
+
+`<body>` is a sequence of operators.
+
+```lisp
+(class Foo)
+
+(class (Bar . Foo))
+```
+
+correponds to
+
+```ruby
+class Foo
+
+end
+
+class Bar < Foo
+
+end
+
+```
+
+### Rubysyn: `(singleton-class)`
+
+Singleton classes are opened by the following syntax:
+
+```lisp
+(singleton-class obj <body>...)
+```
+
+You can open the singleton class of many object instances, including
+classes themselves.  For some instances such as `1` or `true` this is
+not possible.
+
+```lisp
+(class C)
+
+(singleton-class C
+   ;;; method definitions etc.
+)
+
+(assign obj "hello")
+
+(singleton-class obj
+   ;;; method definitions etc.
+)
+
+```
+
+corresponds to:
+
+```ruby
+class C
+
+end
+
+class << C
+  # method definitions on class C
+end
+
+obj = Foo.new
+
+class << obj
+  # method definitions on obj instance
+end
+
+```
+
+
+## Rubysyn: literals
 
 ### String literals
 
