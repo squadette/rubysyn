@@ -152,5 +152,13 @@ describe "lambda" do
     expect(l.call(10, *args)).to eq("10 20 30")
   end
 
+  it "array decomposition args" do
+    l = ->(t, (x, y, z)) do
+      return "#{t} #{x} #{y} #{z.nil?}"
+    end
+
+    args = [20, 30]
+    expect(l.call(2, args)).to eq("2 20 30 true")
+  end
 
 end
