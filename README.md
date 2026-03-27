@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2026-03-22]** This is an experiment in clarifying some aspects
+**[WIP, 2026-03-27]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -50,7 +50,9 @@ semantics that we are interested here.
 - [Classes, modules and methods](#classes-modules-and-methods)
   - [Rubysyn: `(class)`](#rubysyn-class)
   - [Rubysyn: `(singleton-class)`](#rubysyn-singleton-class)
-
+  - [Rubysyn: Modules](#rubysyn-modules)
+  - [`self`](#self)
+  - [`include`](#include)
 - [Rubysyn: literals](#rubysyn-literals)
   - [String literals](#string-literals)
   - [Symbol literals](#symbol-literals)
@@ -1101,6 +1103,40 @@ end
 
 ```
 
+
+### Rubysyn: modules
+
+Modules are defined and reopened by the following syntax:
+
+```lisp
+(module MyModule <body>...)
+```
+
+This corresponds to the usual Ruby:
+
+```ruby
+module MyModule
+  ...
+end
+```
+
+You may use fully-qualified module names as usual, such as `Foo::Bar`
+and `::Foo`.
+
+### `self`
+
+Ruby `self` is implemented by the standard synvar `$$self`.
+
+`(class)`, `(module)` and `(def)` change the value of `$$self`
+correspondingly.  It may be an instance of `Class`, `Module`, or
+`Object`, or whatever is possible for `self`.
+
+`$$self` cannot be assigned to directly.
+
+### `include`
+
+Ruby `include` keyword corresponds to `(include ModuleName)` clause in
+Rubysyn.
 
 ## Rubysyn: literals
 
