@@ -886,10 +886,12 @@ and
 
 Inside the `(args ...)` clause you can use the following:
 
-* required arguments: `a`;
+* simple required argument: `a`;
 
 * optional argument with default value: `(optional b <default>)`; if
   default value is omitted, `nil` is used;
+
+* required array decomposition argument: `(array c d e)`, see below;
 
 * rest argument: `(splat z)`, assembles everything into an array
   value; omit the argument name to ignore keyword arguments;
@@ -914,6 +916,8 @@ the rest argument can be defined only in a certain order:
 
 Any component may not be present.  If both *optional-args* and
 *rest-arg* are not present, then *required-args-2* is empty.
+
+Here, *required-args* may be both simple and array decomposition arguments.
 
 Here are some examples of possible combinations:
 
@@ -942,6 +946,31 @@ Here are some examples of possible combinations:
     (array))
 
 ```
+
+Array decomposition arguments correspond to one function argument, but
+may decompose into several identifiers.  Here is an example in Ruby:
+
+```ruby
+def foo(a, (b, c))
+  a + b + c
+end
+
+foo(1, [20, 30])
+ # => 51
+```
+
+As you can see, `foo` accepts two arguments (`1` and a two-element
+array), but there are three identifiers that you could use in the
+method body.
+
+In Rubysyn such a lambda is defined like this:
+
+```lisp
+(lambda (args a (array b c))
+   (+ (+ a b) c))
+)
+```
+
 
 ### Rubysyn: `(call)`
 
