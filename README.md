@@ -1159,7 +1159,8 @@ Ruby `self` is implemented by the standard synvar `$$self`.
 
 `(class)`, `(module)` and `(def)` change the value of `$$self`
 correspondingly.  It may be an instance of `Class`, `Module`, or
-`Object`, or whatever is possible for `self`.
+`Object`, or whatever is possible for `self`.  There is also a special
+instance of `$$self` that exists on the top level.
 
 `$$self` cannot be assigned to directly.
 
@@ -1198,7 +1199,9 @@ the syntax error exception is raised.
 
 The method is defined on the so called current receiver.  Current
 receiver is stored in the `$$receiver` synvar.  It is assigned by
-`(class)`, `(module)`, and `(singleton-class)`.
+`(class)`, `(module)`, `(singleton-class)`, and also by the top level.
+
+`$$receiver` cannot be assigned to directly.
 
 `$$receiver` is distinct from `$$self`.  One case that is not
 documented clearly could be demonstrated by the top-level definitions:
