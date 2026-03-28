@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2026-03-27]** This is an experiment in clarifying some aspects
+**[WIP, 2026-03-28]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -53,6 +53,7 @@ semantics that we are interested here.
   - [Rubysyn: Modules](#rubysyn-modules)
   - [`self`](#self)
   - [`include`](#include)
+  - [`def`](#def)
 - [Rubysyn: literals](#rubysyn-literals)
   - [String literals](#string-literals)
   - [Symbol literals](#symbol-literals)
@@ -1166,6 +1167,123 @@ correspondingly.  It may be an instance of `Class`, `Module`, or
 
 Ruby `include` keyword corresponds to `(include ModuleName)` clause in
 Rubysyn.
+
+### `def`
+
+Methods are defined using the following general syntax:
+
+```lisp
+(def <method_name> <lambda>)
+```
+
+Method names use exactly the same syntax as Ruby itself, including
+weirder operator stuff like `+`, `-@`, `[]` and so on.  Examples:
+
+```lisp
+(class C
+  (def attr (lambda
+    @attr)) ;; instance variables to be discussed
+
+  (def attr= (lambda (args val)
+    (instance-assign @attr val)))
+
+  (def -@ (lambda
+    "negated"))
+)
+```
+
+`<lambda>` is an instance of lambda: you can use a `(lambda)` clause
+directly, or some variable.  If the value provided is not a lambda,
+the syntax error exception is raised.
+
+The method is defined on the so called current receiver.  Current
+receiver is stored in the `$$receiver` synvar.  It is assigned by
+`(class)`, `(module)`, and `(singleton-class)`.
+
+`$$receiver` is distinct from `$$self`.  One case that is not
+documented clearly could be demonstrated by the top-level definitions:
+
+```ruby
+
+def foo
+  1
+end
+
+def self.bar
+  2
+end
+
+```
+
+NB: this is currently handwavy, we hope to explain it precisely and
+demonstrate the difference on a clear example.
+
+Here is a simple example of all method variants:
+
+```ruby
+
+class C
+
+  def foo
+    "normal method, exists on all instances of class C"
+  end
+
+  def self.bar
+    "instance method, can be called only by C.bar"
+  end
+
+  def C.baz
+    "instance method, same as self.bar: `self === C` is true here"
+  end
+end
+
+s = "hello"
+def s.quux
+  "singleton method: it exists only on this specific string instance, `another_string.quux` fails"
+end
+
+module M
+  def grumble
+    "class method? terminology unclear"
+  end
+end
+
+```
+
+Here are the same definitions in Rubysyn:
+
+```lisp
+(class C
+  ;; note that $$self is now C, and $$receiver is C
+
+  (def foo (lambda "normal method, exists on all instances of class C"))
+
+  (singleton-class $$self
+    ;; $$receiver is now a singleton class of C
+    (def bar "instance method, can be called only by `(send C bar)`"))
+
+  (singleton-class C
+    ;; $$receiver is now also a singleton class of C
+    (def baz "instance method, same as previous: `(=== self, C)` is true here"))
+)
+
+(var s)
+(assign s "hello")
+(singleton-class s
+  ;; $$receiver is now a singleton class of s
+  (def quux "singleton method: it exists only on this specific string instance, `(send another_string quux)` fails"))
+
+(module M
+  ;; $receiver is now M
+  (def grumble (lambda "class method? terminology unclear"))
+)
+```
+
+There seems to be a substantial confusion in terminology around this.
+See also the
+["Modules / Methods"](https://docs.ruby-lang.org/en/3.4/syntax/modules_and_classes_rdoc.html#label-Methods)
+chapter. To be clarified.
+
 
 ## Rubysyn: literals
 
