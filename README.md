@@ -1263,21 +1263,21 @@ Here are the same definitions in Rubysyn:
 
   (singleton-class $$self
     ;; $$receiver is now a singleton class of C
-    (def bar "instance method, can be called only by `(send C bar)`"))
+    (def bar (lambda "instance method, can be called only by `(send C bar)`")))
 
   (singleton-class C
     ;; $$receiver is now also a singleton class of C
-    (def baz "instance method, same as previous: `(=== self, C)` is true here"))
+    (def baz (lambda "instance method, same as previous: `(=== self, C)` is true here")))
 )
 
 (var s)
 (assign s "hello")
 (singleton-class s
   ;; $$receiver is now a singleton class of s
-  (def quux "singleton method: it exists only on this specific string instance, `(send another_string quux)` fails"))
+  (def quux (lambda "singleton method: it exists only on this specific string instance, `(send another_string quux)` fails")))
 
 (module M
-  ;; $receiver is now M
+  ;; $$receiver is now M
   (def grumble (lambda "class method? terminology unclear"))
 )
 ```
