@@ -1316,10 +1316,10 @@ Here are some examples:
 
 (send (File . :new) "t.txt")
 
-(send ($$self . hello) "world" (kwargs (:friendly . true))
+(send ($$self . hello) "world" (kwargs (:friendly . true)))
 
 (send (2 . :+) 3)
-;;; NB: equivalent to (+ 2 3), see below
+;;; NB: (+ 2 3) is also possible, see below
 ```
 
 The corresponding Ruby code:
@@ -1333,7 +1333,6 @@ self.hello("world", friendly: true)
 
 2 + 3
 \# equivalent to 2.+(3)
-
 ```
 
 If the receiver is not specified, `$$receiver` is used by default (the
@@ -1398,6 +1397,29 @@ corresponds to
 (send (File . :send) :new "README.md")
 ```
 
+#### Variable reference / 0-arity call ambiguity
+
+In Ruby, bare `foo` may famously refer to either a local variable
+`foo`, or to a method call with no arguments and with default
+receiver.  You can force the method call by adding parens: `foo()`.
+
+Rubysyn needs to handle this case because it is an alternative Ruby
+syntax.
+
+In Rubysyn, bare `foo` is always a local variable.  Method call is
+always a `(send :foo)`.
+
+To express this particular syntactic ambiguity, we use the `(resolve)`
+synmacro.
+
+```lisp
+(resolve foo)
+```
+
+Note that `foo` is not a symbol, but a terminal token.  If `foo` is
+defined as a local variable, `(resolve)` resolves to `foo`, otherwise
+to `(send :foo)`.  If neither exists, a corresponding `NameError`
+exception is raised.
 
 
 ## Rubysyn: literals
