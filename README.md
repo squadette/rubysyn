@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2026-03-28]** This is an experiment in clarifying some aspects
+**[WIP, 2026-03-30]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -54,6 +54,8 @@ semantics that we are interested here.
   - [`self`](#self)
   - [`include`](#include)
   - [`def`](#def)
+  - [`(send)`](#send)
+  - [Rubysyn: operators syntax sugar](#rubysyn-operators-syntax-sugar)
 - [Rubysyn: literals](#rubysyn-literals)
   - [String literals](#string-literals)
   - [Symbol literals](#symbol-literals)
@@ -1263,18 +1265,18 @@ Here are the same definitions in Rubysyn:
 
   (singleton-class $$self
     ;; $$receiver is now a singleton class of C
-    (def bar (lambda "instance method, can be called only by `(send C bar)`")))
+    (def bar (lambda "instance method, can be called only by `(send (C . bar))`")))
 
   (singleton-class C
     ;; $$receiver is now also a singleton class of C
-    (def baz (lambda "instance method, same as previous: `(=== self, C)` is true here")))
+    (def baz (lambda "instance method, same as previous: `(=== self C)` is true here")))
 )
 
 (var s)
 (assign s "hello")
 (singleton-class s
   ;; $$receiver is now a singleton class of s
-  (def quux (lambda "singleton method: it exists only on this specific string instance, `(send another_string quux)` fails")))
+  (def quux (lambda "singleton method: it exists only on this specific string instance, `(send (another_string . quux))` fails")))
 
 (module M
   ;; $$receiver is now M
@@ -1286,6 +1288,116 @@ There seems to be a substantial confusion in terminology around this.
 See also the
 ["Modules / Methods"](https://docs.ruby-lang.org/en/3.4/syntax/modules_and_classes_rdoc.html#label-Methods)
 chapter. To be clarified.
+
+
+### `(send)`
+
+Methods are called using the following general syntax:
+
+```lisp
+(send <method_name> <args>...)
+```
+
+and
+
+```lisp
+(send (<receiver> . <method_name>) <args>...)
+```
+
+`<method_name>` is a symbol.  `<receiver>` is any value.
+
+The `<args>` syntax is the same as in `(call)`, described above.
+
+
+Here are some examples:
+
+```lisp
+(send :factorial 20)
+
+(send (File . :new) "t.txt")
+
+(send ($$self . hello) "world" (kwargs (:friendly . true))
+
+(send (2 . :+) 3)
+;;; NB: equivalent to (+ 2 3), see below
+```
+
+The corresponding Ruby code:
+
+```ruby
+factorial(20)
+
+File.new("t.txt")
+
+self.hello("world", friendly: true)
+
+2 + 3
+\# equivalent to 2.+(3)
+
+```
+
+If the receiver is not specified, `$$receiver` is used by default (the
+same thing as used for `(def)`).
+
+In runtime, `(send)` first resolves the method, looking at receiver
+and its inheritance chain, autoload, etc.  The resolution semantics
+matches with Ruby, to be described later.
+
+If the method is successfully resolved to a lambda, `(call)` is used
+to pass it the arguments.  The return value becomes the result of
+`(send)`.
+
+If a method could not be resolved, `NoMethodError` exception is
+raised.
+
+### Rubysyn: operators syntax sugar
+
+In the beginning we declared the goal to have a sugar-free syntax.
+
+For readability we introduce a little bit of Rubysyn sugar: operators.
+
+All standard operators in Ruby have corresponding syntax in Rubysyn:
+
+```lisp
+(+ 2 3) ;; 5
+
+(! true) ;; false
+
+(- 5) ;; -5
+
+(- 10 2) ;; 8
+
+([] arr 2) ;; equivalent to arr[2] in Ruby
+```
+
+And so on.  That syntax strictly checks the arity, and is desugared
+into corresponding `(send)`.  Incorrect arity here causes
+Rubysyn-level syntactic error.
+
+```lisp
+(+ 2 3 5)
+;; => Rubysyn syntax error
+
+(send (2 . :+) 3 5)
+;; => runtime ArgumentError exception
+
+```
+
+Operator precedence is not needed because it is explicit.
+
+If the code uses `send` method explicitly, it is treated as any other
+method:
+
+```ruby
+File.send(:new, "README.md")
+```
+
+corresponds to
+
+```lisp
+(send (File . :send) :new "README.md")
+```
+
 
 
 ## Rubysyn: literals
