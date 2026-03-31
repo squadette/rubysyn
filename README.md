@@ -1,6 +1,6 @@
 # Rubysyn: clarifying Ruby's syntax and semantics
 
-**[WIP, 2026-03-30]** This is an experiment in clarifying some aspects
+**[WIP, 2026-04-01]** This is an experiment in clarifying some aspects
 of Ruby syntax and semantics.  For that we're going to introduce an
 alternative Lisp-based syntax for Ruby, preserving Ruby semantics.
 
@@ -47,6 +47,7 @@ semantics that we are interested here.
   - [Rubysyn: `(lambda)`](#rubysyn-lambda)
   - [Rubysyn: `(call)`](#rubysyn-call)
     - [Runtime behavior of `(call)`](#runtime-behavior-of-call)
+  - [Rubysyn: `(return)`](#rubysyn-return)
 - [Classes, modules and methods](#classes-modules-and-methods)
   - [Rubysyn: `(class)`](#rubysyn-class)
   - [Rubysyn: `(singleton-class)`](#rubysyn-singleton-class)
@@ -617,7 +618,7 @@ without explanation:
 
 (assign $$return-value foo)
 
-(assign $$next-label $$return-label)
+(assign $$next-label $$current-return-label)
 
 ```
 
@@ -1050,6 +1051,110 @@ Here are known sources of dynamic behavior:
 
 * too many and too few arguments cause corresponding exceptions;
 
+### Rubysyn: `(return)`
+
+`return` keyword corresponds to the `(return <val?>)` clause.
+
+Return is defined in a very primitive way using Rubysyn primitives:
+
+* `(return val)` is implemented as `(tailcall $$current-return-label val)`;
+
+`$$current-return-label` is internally defined to set the
+`$$return-value` synvar:
+
+```lisp
+(label $current-return-label $$return-value)
+```
+
+`$$current-return-label` is modified by `(call)` for lambdas (but not
+for blocks), and by `(ensure)`.  No other clause touches it.  When the
+lambda is exited (at the bottom), the previous value of
+`$$current-return-label` is restored.
+
+Implicit return is handled in an interesting way.  Basically there is
+an implicit return at the Rubysyn level too.
+
+Here is a simple example:
+
+```ruby
+def fact(x)
+  if x == 1
+    return 1
+  end
+
+  fact(x - 1) * x
+end
+
+t = fact(3)
+```
+
+In Rubysyn:
+
+```lisp
+(def fact
+  (lambda (args x)
+    (seq
+      (if (== x 1)
+        (return 1))
+      (* (send :fact (- x 1)) x))))
+
+(var t)
+(assign t (send :fact 3))
+```
+
+Let's add implicit definitions that are added into `(lambda)` to be
+used when it is called by `(call)`:
+
+```lisp
+(def fact
+  (lambda (args x)
+    (seq
+      (synvar $$return-value) ;; implicit
+      (if (== x 1)
+        (return 1))
+      (return (* (send :fact (- x 1)) x))) ;; explicit `(return)` added
+      (label $$current-return-label $$return-value) ;; implicit, at the very end
+  )
+)
+
+(var t)
+(assign t (send :fact 3))
+```
+
+What we see here:
+
+* `(synvar $$return-value)`: an implicit synvar is declared here,
+  initialized with `nil`.  It's going to be the value returned by the
+  lambda call.
+
+* explicitly added `(return)` at the end.  In principle, we could just
+  use `(assign $$return-value (* (send :fact (- x 1) x)))` here,
+  because `(tailcall)` right next to the `(label)` could be simplified.
+
+* `(label $$current-return-label $$return-value)`: an implicit
+  tailcall label at the very end of `(lambda)`.  If it is used as a
+  tailcall target, `$$return-value` is assigned.
+
+`$$return-value` is special because it corresponds to some sort of
+slot where the return value would be stored.  More on that in the
+"Memory management" section.
+
+Particularly, the return value slot can be optimized away if the
+return value is not used.
+
+Return value slots are a general concept that exists for all other
+clauses, but in case of `(return)` it needed to be described in more
+detail here.
+
+At the top level, `$$current-return-label` is set up in such a way
+that it raises `LocalJumpError` exception:
+
+```
+3.3.10 :001 > return
+(irb):1:in `<main>': unexpected return (LocalJumpError)
+```
+
+
 ## Classes, modules and methods
 
 ### Rubysyn: `(class)`
@@ -1304,6 +1409,12 @@ and
 (send (<receiver> . <method_name>) <args>...)
 ```
 
+Method of the superclass is called by:
+
+```lisp
+(send (super) <args>...)
+```
+
 `<method_name>` is a symbol.  `<receiver>` is any value.
 
 The `<args>` syntax is the same as in `(call)`, described above.
@@ -1348,6 +1459,25 @@ to pass it the arguments.  The return value becomes the result of
 
 If a method could not be resolved, `NoMethodError` exception is
 raised.
+
+Fun fact: `super` syntax is not described in the official
+documentation
+[https://docs.ruby-lang.org/en/3.4/syntax/keywords_rdoc.html](https://docs.ruby-lang.org/en/3.4/syntax/keywords_rdoc.html).
+At the same time, Ruby's `super` syntax is pretty uncommon because it
+does not mention the method name:
+
+```ruby
+class C < A
+  def foo(x)
+    do_something();
+
+    super(x)
+  end
+end
+```
+
+Most other languages use something
+akin to `super.method_name`.
 
 ### Rubysyn: operators syntax sugar
 
